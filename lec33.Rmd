@@ -1,0 +1,140 @@
+---
+title: "STA286 Lecture 33"
+author: "Neil Montgomery"
+date: "Last edited: `r format(Sys.time(), '%Y-%m-%d %H:%M')`"
+output: 
+  beamer_presentation:
+    keep_tex: TRUE
+    incremental: TRUE
+#    df_print: tibble
+    fig_caption: FALSE
+classoption: aspectratio=169
+header-includes:
+- \renewcommand{\le}{\leqslant}
+- \renewcommand{\ge}{\geqslant}
+- \renewcommand\P[1]{P{\left(#1\right)}}
+- \newcommand\F[1]{F_{\tiny{#1}}}
+- \newcommand\f[1]{f_{\tiny{#1}}}
+- \newcommand\p[1]{p_{\tiny{#1}}}
+- \newcommand\M[1]{M_{\tiny{#1}}}
+- \newcommand\V[1]{\text{Var}\!\left(#1\right)}
+- \newcommand\E[1]{E\!\left(#1\right)}
+- \newcommand\N[1]{N_{\tiny{#1}}}
+- \newcommand\ol{\overline}
+- \newcommand\ve{\varepsilon}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE,
+                      dev = 'pdf', fig.width=5, fig.asp=0.6, fig.align = 'center')
+options(tibble.width=70, tibble.print_max=5, show.signif.stars = FALSE,
+        xtable.include.rownames=FALSE, xtable.comment=FALSE)
+library(tidyverse)
+library(xtable)
+```
+
+# case study - regression
+
+## some data
+
+There's a "classic" dataset with the weights in grams of the bodies and brains of 62 animals. 
+
+Here's a glance at the data:
+
+```{r, results='asis'}
+bw <- read_csv("brain.csv")
+print(xtable(bw))
+```
+
+## two numerical variables - scatterplot
+
+```{r}
+bw %>% 
+  ggplot(aes(x=Body, y=Brain)) + geom_point() + theme_bw()
+```
+
+## log-log scales
+
+```{r}
+bw %>% 
+  ggplot(aes(x=log(Body), y=log(Brain))) + geom_point() + theme_bw()
+```
+
+## the simple regression model
+
+A simple model in the form of:
+$$\text{Output} = \text{Input} + \text{Noise}$$
+is the simple linear regression model with normal noise:
+$$y_i = \beta_0 + \beta_1 x_i + \ve_i$$
+with $\ve$ i.i.d. $N(0,\sigma)$ for some unknown $\sigma$ (which is constant - not a function of $x$.)
+
+The data has $n$ rows, so $i \in \{1,\ldots,n\}$.
+
+## the variables
+
+\pause $y$ gets variously called the "output variable", the "dependent variable", the "outcome variable", the "target variable", the "y" variable, and probably others.
+
+\pause $x$ gets variously called the "input variable", the "independent variable", the "predictor", "explanatory", "risk factor", "feature", "x", and probably others.
+
+\pause  The input variable is not treated as though it came from a random process (even if it did.) It is treated as a vector of constants.
+
+The output variable is therefore a sum of constants plus a vector of random noise.
+
+## the parameters, and the model re-expressed
+
+So this is another way of writing the model:
+$$y_i \sim N(\beta_0 + \beta_1 x_i, \sigma)$$
+
+There are three parameters in this model: $\beta_0$, $\beta_1$, and $\sigma^2$. These will be estimated using data.
+
+\pause For convenience call the data: $D = \{(x_1,y_1),\ldots,(x_n,y_n)\}$
+
+\pause A likelihood function is:
+\begin{align*}
+L(\beta_0,\beta_1,\sigma^2; D) &= \prod\limits_{i=1}^n f(y_i, x_i, \beta_0,\beta_1,\sigma^2)\\
+&= (2\pi\sigma^2)^{-n/2}\exp\left(-\sum\limits_{i=1}^n \frac{1}{2\sigma^2}\left(y_i - (\beta_0 + \beta_1 x_i)\right)^2\right)\\
+\ell(\beta_0,\beta_1,\sigma^2) &= -\frac{n}{2}\log(2\pi) - \frac{n}{2}\log(\sigma^2) - \frac{1}{2\sigma^2} \sum\limits_{i=1}^n \left(y_i - (\beta_0 + \beta_1 x_i)\right)^2
+\end{align*}
+
+## the MLEs
+
+Set the three partial deriavitives equal to zero, and solve away! Tedious, but do-able.
+
+The estimators are called $\hat\beta_0$, $\hat\beta_1$ and $\widehat{\sigma^2}$. We end up with the \textit{fitted regression line}:
+$$\hat y(x) = \hat\beta_0 + \hat\beta_1x$$
+
+\pause When you evaluate this line at the input values from the data, you end up with the \textit{fitted values}:
+$$\hat y_i = \hat\beta_0 + \hat\beta_1 x_i$$
+
+\pause The distances between the fitted values and the true values are called the \textit{residuals}:
+$$\hat \ve_i = y_i - \hat y_i$$
+
+## MLE for $\sigma^2$
+
+\pause Of particular interest is $\widehat{\sigma^2}$, which is the solution of the following (with $\hat\beta_0$ and $\hat\beta_1$ plugged in):
+\begin{align*}
+0 &= \frac{\partial \ell}{\partial \sigma^2}\\
+ &= -\frac{n}{2\sigma^2} + \frac{1}{2(\sigma^2)^2} \sum\limits_{i=1}^n \left(y_i - (\hat\beta_0 + \hat\beta_1 x_i)\right)^2\\
+ &= -\frac{n}{2\sigma^2} + \frac{1}{2(\sigma^2)^2} \sum\limits_{i=1}^n \hat\ve_i^2
+\end{align*}
+
+\pause The solution is:
+$$\widehat{\sigma^2} = \frac{\sum\limits_{i=1}^n \hat\ve_i^2}{n} = \frac{\sum\limits_{i=1}^n (y_i - \hat y_i)^2}{n}$$
+
+## the unbiased estimators for the parameters
+
+After all the work is done, we end up with:
+
+\begin{align*}
+\hat\beta_0 &= \ol{y} - \hat\beta_1\ol{x}\\
+\hat\beta_1 &= \frac{\sum\limits_{i=1}^n (y_i-\ol{y})(x_i - \ol{x})}{\sum\limits_{i=1}^n (x_i - \ol{x})^2} \onslide<2->{= \frac{S_{xy}}{S_{xx}} =\sum\limits_{i=1}^n c_i(y_i - \ol{y})}\\
+\widehat{\sigma^2} &= \frac{\sum\limits_{i=1}^n (y_i - \hat y_i)^2}{n-2}
+\end{align*}
+
+## the distribution of $\hat\beta_1$
+
+Since the $y_i$ have normal distributions, it means $\hat\beta_1$ has a normal distribution. In particular:
+$$\hat\beta_1 \sim N\left(\beta_1, \frac{\sigma}{\sqrt{S_{xx}}}\right)$$
+
+So who wants to guess that distribution this thing has:
+$$\frac{\hat\beta_1 - \beta_1}{\sqrt{\widehat{\sigma^2}/S_{xx}}}$$
